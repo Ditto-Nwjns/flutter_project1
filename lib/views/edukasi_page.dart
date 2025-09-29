@@ -16,7 +16,7 @@ class EdukasiPage extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         itemCount: items.length,
         separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (_, i) {
+        itemBuilder: (context, i) {
           final it = items[i];
           return Card(
             color: const Color(0xFF1E1E1E),
@@ -27,7 +27,7 @@ class EdukasiPage extends StatelessWidget {
               subtitle: Text(it.$2),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('Buka materi: ${it.$1}'))),
+                  .showSnackBar(SnackBar(content: Text('Buka materi: ${it.$1}'))),
             ),
           );
         },

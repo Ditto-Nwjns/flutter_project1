@@ -2,18 +2,28 @@ import 'package:flutter/material.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
-
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
+  final _nameCtrl = TextEditingController(text: 'Sandi Arta'); // (why): dev-friendly default
+  final _emailCtrl = TextEditingController();
+  final _passCtrl = TextEditingController();
   bool _obscure = true;
   bool _remember = false;
 
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _emailCtrl.dispose();
+    _passCtrl.dispose();
+    super.dispose();
+  }
+
   void _login() {
-    // (why): replace agar tidak bisa kembali ke Login dengan tombol back
-    Navigator.pushReplacementNamed(context, '/home');
+    final name = _nameCtrl.text.trim().isEmpty ? 'Sandi Arta' : _nameCtrl.text.trim();
+    Navigator.pushReplacementNamed(context, '/home', arguments: name);
   }
 
   @override
@@ -33,11 +43,20 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 12),
                   Text('SABDA', textAlign: TextAlign.center, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
-                  Text('Ruang aman untuk berbagi cerita', textAlign: TextAlign.center),
-                  const SizedBox(height: 32),
-
-                  // Form tampilan (tidak divalidasi untuk dev cepat)
+                  const Text('Ruang aman untuk berbagi cerita', textAlign: TextAlign.center),
+                  const SizedBox(height: 24),
                   TextField(
+                    controller: _nameCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'Nama (opsional)',
+                      prefixIcon: const Icon(Icons.person_outline),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Field berikut hanya tampilan (tidak divalidasi, untuk feel login)
+                  TextField(
+                    controller: _emailCtrl,
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
                       labelText: 'Email',
@@ -47,6 +66,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 12),
                   TextField(
+                    controller: _passCtrl,
                     obscureText: _obscure,
                     decoration: InputDecoration(
                       labelText: 'Kata Sandi',
@@ -68,8 +88,6 @@ class _LoginPageState extends State<LoginPage> {
                     ],
                   ),
                   const SizedBox(height: 8),
-
-                  // Tombol Login langsung masuk
                   ElevatedButton.icon(
                     onPressed: _login,
                     icon: const Icon(Icons.login),
@@ -77,8 +95,12 @@ class _LoginPageState extends State<LoginPage> {
                     style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                   ),
                   const SizedBox(height: 12),
-
-                  
+                  OutlinedButton.icon(
+                    onPressed: _login, // jalur cepat dev
+                    icon: const Icon(Icons.g_mobiledata, size: 28),
+                    label: const Text('Login dengan Google'),
+                    style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                  ),
                 ],
               ),
             ),

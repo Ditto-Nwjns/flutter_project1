@@ -1,8 +1,14 @@
-// lib/views/profile.dart
 import 'package:flutter/material.dart';
 
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
+  final String username;
+  final ValueChanged<String>? onNameChanged;
+
+  const ProfilePage({
+    super.key,
+    required this.username,
+    this.onNameChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -10,7 +16,7 @@ class ProfilePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profil'),
-        automaticallyImplyLeading: canPop, // why: tampilkan tombol back jika datang via push
+        automaticallyImplyLeading: canPop,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -20,32 +26,39 @@ class ProfilePage extends StatelessWidget {
             const SizedBox(width: 16),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Sandi Arta', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                Text(username, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
                 Text('sandi.arta@gmail.com', style: TextStyle(color: Colors.white.withOpacity(.8))),
               ]),
             ),
-            OutlinedButton(onPressed: () {}, child: const Text('Edit Profil')),
+            OutlinedButton(
+              onPressed: () async {
+                final newName = await _showEditNameDialog(context, username);
+                if (newName != null && newName.trim().isNotEmpty) {
+                  onNameChanged?.call(newName.trim());
+                  if (canPop) Navigator.pop(context);
+                }
+              },
+              child: const Text('Edit Profil'),
+            ),
           ]),
           const SizedBox(height: 16),
 
-          // Info Akun
           Card(
-            color: const Color.fromARGB(255, 12, 0, 54),
+            color: const Color(0xFF1E1E1E),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Column(children: const [
-              ListTile(leading: Icon(Icons.badge_outlined), title: Text('ID Pengguna'), subtitle: Text('MW01023')),
+            child: const Column(children: [
+              ListTile(leading: Icon(Icons.badge_outlined), title: Text('ID Pengguna'), subtitle: Text('USR-000123')),
               Divider(height: 1),
               ListTile(leading: Icon(Icons.phone_iphone), title: Text('No. HP'), subtitle: Text('+62 812-3456-7890')),
               Divider(height: 1),
-              ListTile(leading: Icon(Icons.location_on_outlined), title: Text('Lokasi'), subtitle: Text('Bali, ID')),
+              ListTile(leading: Icon(Icons.location_on_outlined), title: Text('Lokasi'), subtitle: Text('Makassar, ID')),
             ]),
           ),
           const SizedBox(height: 16),
 
-          // Keamanan (2FA DIHAPUS SESUAI PERMINTAAN)
           Card(
-            color: const Color.fromARGB(255, 12, 0, 54),
+            color: const Color(0xFF19202A),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: const Column(children: [
               ListTile(
@@ -57,7 +70,6 @@ class ProfilePage extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Aksi
           ElevatedButton.icon(
             onPressed: () {},
             icon: const Icon(Icons.logout),
@@ -68,23 +80,22 @@ class ProfilePage extends StatelessWidget {
       ),
     );
   }
-}
 
-class _StatCard extends StatelessWidget {
-  final String label;
-  final String value;
-  const _StatCard({required this.label, required this.value});
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: const Color(0xFF1E1E1E), borderRadius: BorderRadius.circular(16)),
-        child: Column(children: [
-          Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          Text(label, style: TextStyle(color: Colors.white.withOpacity(.8))),
-        ]),
+  Future<String?> _showEditNameDialog(BuildContext context, String current) async {
+    final ctrl = TextEditingController(text: current);
+    return showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Ubah Nama'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'Masukkan nama baru'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Batal')),
+          ElevatedButton(onPressed: () => Navigator.pop(context, ctrl.text), child: const Text('Simpan')),
+        ],
       ),
     );
   }

@@ -1,9 +1,6 @@
-// lib/main.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_5a/views/dashboard.dart'; // NavBar
-
-// Pages
-import 'views/login_page.dart';      // <-- tambahkan ini
+import 'views/login_page.dart';
+import 'package:flutter_5a/views/dashboard.dart'; // NavBar yg sudah terpakai di project-mu
 import 'views/profile.dart';
 import 'views/chat_page.dart';
 import 'views/laporkan_page.dart';
@@ -31,11 +28,19 @@ class SabdaApp extends StatelessWidget {
           secondary: AppColors.primary,
         ),
       ),
-      // >>> Login tampil pertama
+      // Login sebagai halaman awal
       routes: {
-        '/': (_) => const LoginPage(),   // <-- awalnya HomeShell, kini Login
-        '/home': (_) => const HomeShell(), // <-- tujuan setelah login
-        '/profil': (_) => const ProfilePage(),
+        '/': (_) => const LoginPage(),
+        // Teruskan username dari arguments ke HomeShell
+        '/home': (ctx) {
+          final usernameArg = (ModalRoute.of(ctx)?.settings.arguments as String?)?.trim();
+          return HomeShell(initialUsername: (usernameArg?.isNotEmpty == true) ? usernameArg! : 'Sandi Arta');
+        },
+        // Profil via push (opsional), kalau dipakai, kirim argumen username saat memanggil
+        '/profil': (ctx) {
+          final name = (ModalRoute.of(ctx)?.settings.arguments as String?) ?? 'Sandi Arta';
+          return ProfilePage(username: name);
+        },
         '/chat': (_) => const ChatPage(),
         '/lapor': (_) => const LaporkanPage(),
         '/edukasi': (_) => const EdukasiPage(),
@@ -44,24 +49,74 @@ class SabdaApp extends StatelessWidget {
   }
 }
 
+// ------------------------------ HomeShell --------------------------------
 class HomeShell extends StatefulWidget {
-  const HomeShell({super.key});
+  final String initialUsername;
+  const HomeShell({super.key, required this.initialUsername});
+
   @override
   State<HomeShell> createState() => _HomeShellState();
 }
 
+class ActivityItem {
+  final IconData icon;
+  final String title;
+  final String subtitle; // time/desc
+  ActivityItem(this.icon, this.title, this.subtitle);
+}
+
 class _HomeShellState extends State<HomeShell> {
   int _selectedIndex = 0;
-
-  final _pages = const [
-    BerandaPage(),
-    ProfilePage(),
+  late String _username;
+  final List<ActivityItem> _recentActivities = <ActivityItem>[
+    ActivityItem(Icons.forum_outlined, 'Chat dengan Konselor A', 'Kemarin'),
+    ActivityItem(Icons.menu_book_outlined, 'Baca artikel: Mengenal Kekerasan', '3 hari lalu'),
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _username = widget.initialUsername;
+  }
+
+  Future<void> _openLaporkan() async {
+    final result = await Navigator.pushNamed(context, '/lapor');
+    if (result is ReportResult) {
+      setState(() {
+        _recentActivities.insert(
+          0,
+          ActivityItem(
+            Icons.check_circle_outline,
+            'Laporan: ${result.judul}',
+            'Baru saja',
+          ),
+        );
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Laporan ditambahkan ke Aktivitas Terakhir')),
+      );
+    }
+  }
+
+  void _openProfileTab() => setState(() => _selectedIndex = 1);
+
+  @override
   Widget build(BuildContext context) {
+    final pages = [
+      BerandaPage(
+        username: _username,
+        recentActivities: _recentActivities,
+        onOpenLaporkan: _openLaporkan,
+        onOpenProfileTab: _openProfileTab,
+      ),
+      ProfilePage(
+        username: _username,
+        onNameChanged: (v) => setState(() => _username = v),
+      ),
+    ];
+
     return Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: _pages),
+      body: IndexedStack(index: _selectedIndex, children: pages),
       bottomNavigationBar: SabdaNavBar(
         selectedIndex: _selectedIndex,
         onTabChange: (i) => setState(() => _selectedIndex = i),
@@ -70,31 +125,44 @@ class _HomeShellState extends State<HomeShell> {
   }
 }
 
+// ------------------------------ BerandaPage -------------------------------
 class BerandaPage extends StatelessWidget {
-  const BerandaPage({super.key});
+  final String username;
+  final List<ActivityItem> recentActivities;
+  final VoidCallback onOpenLaporkan;
+  final VoidCallback onOpenProfileTab;
+
+  const BerandaPage({
+    super.key,
+    required this.username,
+    required this.recentActivities,
+    required this.onOpenLaporkan,
+    required this.onOpenProfileTab,
+  });
 
   @override
   Widget build(BuildContext context) {
-    const helloName = 'Sandi Arta';
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           // Header
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            const Column(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Hallo,", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500)),
-                SizedBox(height: 2),
-                Text(helloName, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                SizedBox(height: 4),
-                Text("Selamat datang di SABDA!",
-                    style: TextStyle(fontSize: 14, color: Color.fromARGB(166, 255, 255, 255))),
+                const Text("Hallo,", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500)),
+                const SizedBox(height: 2),
+                Text(username, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                const Text(
+                  "Selamat datang di SABDA!",
+                  style: TextStyle(fontSize: 14, color: Color.fromARGB(166, 255, 255, 255)),
+                ),
               ],
             ),
             GestureDetector(
-              onTap: () => Navigator.pushNamed(context, '/profil'),
+              onTap: onOpenProfileTab, // (why): langsung ke tab Profil agar bisa ubah nama & sinkron
               child: const CircleAvatar(
                 radius: 28,
                 backgroundImage: AssetImage('assets/img/Pak_Datuk.jpeg'),
@@ -142,7 +210,7 @@ class BerandaPage extends StatelessWidget {
                 title: "Laporkan",
                 subtitle: "Sampaikan laporan.",
                 color: const Color.fromARGB(255, 79, 0, 0),
-                onTap: () => Navigator.pushNamed(context, '/lapor'),
+                onTap: onOpenLaporkan,
               ),
             ),
             const SizedBox(width: 12),
@@ -159,7 +227,7 @@ class BerandaPage extends StatelessWidget {
 
           const SizedBox(height: 24),
 
-          // ===== Tambahan Main-Menu =====
+          // ===== Aktivitas Terakhir (DINAMIS) =====
           Text("Aktivitas Terakhir", style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           Card(
@@ -168,26 +236,24 @@ class BerandaPage extends StatelessWidget {
             child: ListView.separated(
               physics: const NeverScrollableScrollPhysics(),
               shrinkWrap: true,
-              itemCount: 2,
+              itemCount: recentActivities.length,
               separatorBuilder: (_, __) => const Divider(height: 1),
               itemBuilder: (ctx, i) {
-                final items = [
-                  ('Chat dengan Konselor A', Icons.forum_outlined, 'Kemarin'),
-                  ('Baca artikel: Mengenal Kekerasan', Icons.menu_book_outlined, '3 hari lalu'),
-                ];
-                final it = items[i];
+                final it = recentActivities[i];
                 return ListTile(
-                  leading: Icon(it.$2),
-                  title: Text(it.$1),
-                  subtitle: Text(it.$3),
+                  leading: Icon(it.icon),
+                  title: Text(it.title),
+                  subtitle: Text(it.subtitle),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () {},
                 );
               },
             ),
           ),
+
           const SizedBox(height: 16),
 
+          // Tips Keamanan
           Text("Tips Keamanan", style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           Container(
@@ -223,6 +289,7 @@ class _Bullet extends StatelessWidget {
   }
 }
 
+// ------------------------------ FeatureCard -------------------------------
 class FeatureCard extends StatefulWidget {
   final IconData icon;
   final String title;
@@ -277,21 +344,18 @@ class _FeatureCardState extends State<FeatureCard> with SingleTickerProviderStat
       duration: const Duration(milliseconds: 150),
       padding: const EdgeInsets.all(12),
       height: widget.height,
-      width: double.infinity,
+      width: double.infinity, // full-width saat di Column
       decoration: BoxDecoration(
         color: _active ? widget.color.withOpacity(0.9) : widget.color,
         borderRadius: BorderRadius.circular(16),
         boxShadow: _active ? const [BoxShadow(color: Colors.black45, blurRadius: 10, offset: Offset(0, 4))] : const [],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(widget.icon, size: 28, color: Colors.white),
-          const SizedBox(height: 8),
-          Text(widget.title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-          Text(widget.subtitle, style: const TextStyle(fontSize: 12, color: Colors.white70)),
-        ],
-      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(widget.icon, size: 28, color: Colors.white),
+        const SizedBox(height: 8),
+        Text(widget.title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        Text(widget.subtitle, style: const TextStyle(fontSize: 12, color: Colors.white70)),
+      ]),
     );
 
     final interactive = Material(
